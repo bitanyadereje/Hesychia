@@ -113,12 +113,14 @@ def extract_scripture_references(text):
     pattern = r'(Matthew|Mark|Luke|John|Acts|Romans|Corinthians|Galatians|Ephesians|Philippians|Colossians|Thessalonians|Timothy|Titus|Philemon|Hebrews|James|Peter|Jude|Revelation)\s+(\d+):(\d+)'
     matches = re.findall(pattern, text)
     return [f"{book} {ch}:{v}" for book, ch, v in matches]
-
 @app.post("/api/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest):
-    "llama-3.1-8b-instant",
-    "gemma2-9b-it",             
-    "llama-3.3-70b-versatile",
+    # Define the fallback chain HERE (inside the function)
+    models_to_try = [
+        "llama-3.1-8b-instant",
+        "gemma2-9b-it",
+        "llama-3.3-70b-versatile",
+    ]
     
     last_error = None
     
@@ -132,7 +134,6 @@ async def chat(request: ChatRequest):
             full_query = f"{EIKON_SYSTEM_PROMPT}\n\nQuestion: {request.question}"
             response = query_engine.query(full_query)
             
-            #  sources
             sources = [
                 SourceNode(
                     text=source.node.text[:500] + ("..." if len(source.node.text) > 500 else ""),
@@ -142,7 +143,6 @@ async def chat(request: ChatRequest):
                 for source in response.source_nodes
             ]
             
-            # Extract homily citation
             homily_citation = None
             if response.source_nodes:
                 first_text = response.source_nodes[0].node.text
@@ -152,7 +152,6 @@ async def chat(request: ChatRequest):
                 else:
                     homily_citation = "St. Isaac of Nineveh"
             
-            # If we got here, success!
             return ChatResponse(
                 answer=response.response,
                 sources=sources,
@@ -176,7 +175,6 @@ async def chat(request: ChatRequest):
         sources=[],
         homily_citation="— St. Isaac of Nineveh"
     )
-
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
