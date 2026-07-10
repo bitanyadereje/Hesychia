@@ -27,6 +27,7 @@ app.add_middleware(
         "https://hesychia.vercel.app",
         "https://hesychia-frontend.vercel.app",
         "https://hesychia-backend.onrender.com",
+        
     ],
     allow_credentials=True,
     allow_methods=["GET", "POST", "OPTIONS"],
@@ -115,11 +116,9 @@ def extract_scripture_references(text):
 
 @app.post("/api/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest):
-    models_to_try = [
-      "llama-3.1-8b-instant",       
-    "gemma2-9b-it",                 
-    "llama-3.3-70b-versatile",     
-    ]
+    "llama-3.1-8b-instant",
+    "gemma2-9b-it",             
+    "llama-3.3-70b-versatile",
     
     last_error = None
     
