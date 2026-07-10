@@ -116,9 +116,9 @@ def extract_scripture_references(text):
 @app.post("/api/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest):
     models_to_try = [
-        "llama-3.1-8b-instant",       # Fast, cheaper, good quality
-        "mixtral-8x7b-32768",          # Different model, different rate limit pool
-        "llama-3.3-70b-versatile",     # Best quality, but we hit limits fastest
+      "llama-3.1-8b-instant",       
+    "gemma2-9b-it",             
+    "llama-3.3-70b-versatile",     
     ]
     
     last_error = None
