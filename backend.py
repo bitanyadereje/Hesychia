@@ -10,25 +10,49 @@ from llama_index.embeddings.fastembed import FastEmbedEmbedding
 from llama_index.llms.groq import Groq
 from typing import List, Optional
 from functools import lru_cache
+import re
 
 load_dotenv()
 
-app = FastAPI(title="Hyescia API", description="A window into St. Isaac the Syrian")
+app = FastAPI(title="Hesychia API", description="A window into St. Isaac the Syrian")
 
 # --- CORS ---
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-    "http://localhost:4321",
-    "http://localhost:5173",
-    "https://hesychia.vercel.app",  
-    "https://your-render-backend.onrender.com", 
-],
+        "http://localhost:5173",
+        "http://localhost:3000",
+        "http://localhost:4321",
+        "http://127.0.0.1:4321",
+        "https://hesychia.vercel.app",  # Your Vercel frontend URL
+        "https://hesychia-frontend.vercel.app",  # Alternative Vercel URL
+    ],
     allow_credentials=True,
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
-    
 )
+
+# --- Root Endpoint ---
+@app.get("/")
+async def root():
+    return {
+        "message": "Hesychia backend is live!",
+        "docs": "/docs",
+        "health": "/api/health"
+    }
+
+# --- Health Endpoint ---
+@app.get("/api/health")
+async def health_check():
+    try:
+        load_index()
+        return {
+            "status": "ready",
+            "message": "Hesychia backend is running.",
+            "index_name": os.getenv("PINECONE_INDEX_NAME")
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
 
 # --- Models ---
 class ChatRequest(BaseModel):
@@ -76,18 +100,11 @@ def load_index():
     storage_context = StorageContext.from_defaults(vector_store=vector_store)
     return VectorStoreIndex.from_vector_store(vector_store, storage_context=storage_context)
 
-# --- Health Endpoint ---
-@app.get("/api/health")
-async def health_check():
-    try:
-        load_index()
-        return {
-            "status": "ready",
-            "message": "Hyescia backend is running.",
-            "index_name": os.getenv("PINECONE_INDEX_NAME")
-        }
-    except Exception as e:
-        return {"status": "error", "message": str(e)}
+# --- Scripture Reference Extraction ---
+def extract_scripture_references(text):
+    pattern = r'(Matthew|Mark|Luke|John|Acts|Romans|Corinthians|Galatians|Ephesians|Philippians|Colossians|Thessalonians|Timothy|Titus|Philemon|Hebrews|James|Peter|Jude|Revelation)\s+(\d+):(\d+)'
+    matches = re.findall(pattern, text)
+    return [f"{book} {ch}:{v}" for book, ch, v in matches]
 
 # --- Chat Endpoint ---
 @app.post("/api/chat", response_model=ChatResponse)
