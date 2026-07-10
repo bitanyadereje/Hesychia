@@ -1,4 +1,3 @@
-from curses import flash
 import os
 import re
 from functools import lru_cache
@@ -8,20 +7,21 @@ import pinecone
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pinecone import models
 from pydantic import BaseModel
 
 from llama_index.core import Settings, VectorStoreIndex, StorageContext
 from llama_index.embeddings.fastembed import FastEmbedEmbedding
 from llama_index.llms.groq import Groq
-from llama_index.llms.gemini import Gemini
 from llama_index.vector_stores.pinecone import PineconeVectorStore
+
+# Import Mistral fallback
+from mistral_client import get_mistral_response
 
 load_dotenv()
 
 app = FastAPI(title="Hesychia API", description="A window into St. Isaac the Syrian")
 
-# CORS
+# --- CORS ---
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -38,7 +38,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# System Prompt
+# --- System Prompt ---
 EIKON_SYSTEM_PROMPT = """
 You are Hesychia (Greek for "stillness" or "silence"). You are a spiritual companion dedicated to St. Isaac the Syrian.
 
@@ -53,7 +53,7 @@ Your response MUST ALWAYS:
 3. If the user asks something outside St. Isaac's writings, gently say so.
 """
 
-# Pydantic Models
+# --- Pydantic Models ---
 class ChatRequest(BaseModel):
     question: str
 
@@ -67,7 +67,7 @@ class ChatResponse(BaseModel):
     sources: List[SourceNode]
     homily_citation: Optional[str] = None
 
-# Helpers
+# --- Helper: Extract Homily Number ---
 def extract_homily_number(text: str) -> Optional[str]:
     patterns = [
         r'Homily\s+(\d{1,3})',
@@ -80,7 +80,7 @@ def extract_homily_number(text: str) -> Optional[str]:
             return f"Homily {match.group(1)}"
     return None
 
-# Load Pinecone Index (cached)
+# --- Load Pinecone Index (cached) ---
 @lru_cache(maxsize=1)
 def load_index():
     pc = pinecone.Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
@@ -88,7 +88,6 @@ def load_index():
     pinecone_index = pc.Index(index_name)
 
     Settings.embed_model = FastEmbedEmbedding(model_name="BAAI/bge-small-en-v1.5")
-    # Default LLM – will be overridden per request
     Settings.llm = Groq(model="llama-3.1-8b-instant", temperature=0.3)
     Settings.context_window = 16384
     Settings.num_output = 512
@@ -98,7 +97,7 @@ def load_index():
     storage_context = StorageContext.from_defaults(vector_store=vector_store)
     return VectorStoreIndex.from_vector_store(vector_store, storage_context=storage_context)
 
-# Health Endpoint
+# --- Health Endpoint ---
 @app.get("/api/health")
 async def health_check():
     try:
@@ -111,16 +110,14 @@ async def health_check():
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
-# Chat Endpoint with Fallback Chain
+# --- Chat Endpoint with Fallback Chain (Groq → Mistral) ---
 @app.post("/api/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest):
-    # Define fallback chain: first try Groq models, then Gemini
     groq_models = [
-        "llama-3.1-8b-instant",      # Fast, good quality
-        "llama-3.3-70b-versatile",   # Best quality (fallback)
+        "llama-3.1-8b-instant",
+        "llama-3.3-70b-versatile",
     ]
-
-    last_error = None
+    
     groq_worked = False
 
     # 1. Try Groq models
@@ -159,50 +156,27 @@ async def chat(request: ChatRequest):
 
         except Exception as e:
             if "RateLimitError" in str(type(e)) or "rate_limit" in str(e).lower():
-                last_error = e
                 print(f"⚠️ Groq model {model_name} failed (rate limit). Trying next...")
                 continue
             else:
-                # Unexpected error – raise it
                 import traceback
                 traceback.print_exc()
                 raise HTTPException(status_code=500, detail=str(e))
 
-    # 2. If all Groq models fail, try Gemini fallback
-    if not groq_worked and os.getenv("GOOGLE_API_KEY"):
+    # 2. If all Groq models fail, fallback to Mistral
+    if not groq_worked and os.getenv("MISTRAL_API_KEY"):
         try:
-            print("⚠️ All Groq models failed. Falling back to Gemini...")
-            Settings.llm = Gemini(model="models/gemini-1.5-flash", temperature=0.3)
-            index = load_index()
-            query_engine = index.as_query_engine(similarity_top_k=3)
-
+            print("⚠️ All Groq models failed. Falling back to Mistral...")
             full_query = f"{EIKON_SYSTEM_PROMPT}\n\nQuestion: {request.question}"
-            response = query_engine.query(full_query)
-
-            sources = [
-                SourceNode(
-                    text=source.node.text[:500] + ("..." if len(source.node.text) > 500 else ""),
-                    score=source.score,
-                    metadata=source.node.metadata
+            mistral_answer = get_mistral_response(full_query)
+            if mistral_answer:
+                return ChatResponse(
+                    answer=mistral_answer,
+                    sources=[],
+                    homily_citation="— St. Isaac of Nineveh"
                 )
-                for source in response.source_nodes
-            ]
-
-            homily_citation = None
-            if response.source_nodes:
-                first_text = response.source_nodes[0].node.text
-                homily_num = extract_homily_number(first_text)
-                homily_citation = f"{homily_num}, St. Isaac of Nineveh" if homily_num else "St. Isaac of Nineveh"
-
-            return ChatResponse(
-                answer=response.response,
-                sources=sources,
-                homily_citation=homily_citation
-            )
-
         except Exception as e:
-            print(f"❌ Gemini fallback also failed: {e}")
-            # Continue to final error response
+            print(f"❌ Mistral fallback also failed: {e}")
 
     # 3. If everything fails, return a friendly error
     error_msg = "I'm currently experiencing high demand. Please try again in a few minutes, or ask a different question."
