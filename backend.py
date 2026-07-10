@@ -24,15 +24,15 @@ app.add_middleware(
         "http://localhost:3000",
         "http://localhost:4321",
         "http://127.0.0.1:4321",
-        "https://hesychia.vercel.app",  # Your Vercel frontend URL
-        "https://hesychia-frontend.vercel.app",  # Alternative Vercel URL
+        "https://hesychia.vercel.app",
+        "https://hesychia-frontend.vercel.app",
+        "https://hesychia-backend.onrender.com",
     ],
     allow_credentials=True,
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
 )
 
-# --- Root Endpoint ---
 @app.get("/")
 async def root():
     return {
@@ -41,7 +41,6 @@ async def root():
         "health": "/api/health"
     }
 
-# --- Health Endpoint ---
 @app.get("/api/health")
 async def health_check():
     try:
@@ -54,7 +53,6 @@ async def health_check():
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
-# --- Models ---
 class ChatRequest(BaseModel):
     question: str
 
@@ -68,7 +66,6 @@ class ChatResponse(BaseModel):
     sources: List[SourceNode]
     homily_citation: Optional[str] = None
 
-# --- System Prompt ---
 EIKON_SYSTEM_PROMPT = """
 You are Hesychia (Greek for "stillness" or "silence"). You are a spiritual companion dedicated to St. Isaac the Syrian.
 
@@ -83,7 +80,18 @@ Your response MUST ALWAYS:
 3. If the user asks something outside St. Isaac's writings, gently say so.
 """
 
-# --- Load Index ---
+def extract_homily_number(text):
+    patterns = [
+        r'Homily\s+(\d{1,3})',        # "Homily 34"
+        r'Homily\s+([IVXLCDM]+)',     # "Homily XXXIV"
+        r'Hom\.\s*(\d{1,3})',          # "Hom. 34"
+    ]
+    for pattern in patterns:
+        match = re.search(pattern, text, re.IGNORECASE)
+        if match:
+            return f"Homily {match.group(1)}"
+    return None
+
 @lru_cache(maxsize=1)
 def load_index():
     pc = pinecone.Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
@@ -91,7 +99,7 @@ def load_index():
     pinecone_index = pc.Index(index_name)
     
     Settings.embed_model = FastEmbedEmbedding(model_name="BAAI/bge-small-en-v1.5")
-    Settings.llm = Groq(model="llama-3.3-70b-versatile", temperature=0.3)
+    Settings.llm = Groq(model="llama-3.1-8b-instant", temperature=0.3)  # Default to 8B
     Settings.context_window = 16384
     Settings.num_output = 512
     Settings.chunk_size = 1024
@@ -100,46 +108,75 @@ def load_index():
     storage_context = StorageContext.from_defaults(vector_store=vector_store)
     return VectorStoreIndex.from_vector_store(vector_store, storage_context=storage_context)
 
-# --- Scripture Reference Extraction ---
 def extract_scripture_references(text):
     pattern = r'(Matthew|Mark|Luke|John|Acts|Romans|Corinthians|Galatians|Ephesians|Philippians|Colossians|Thessalonians|Timothy|Titus|Philemon|Hebrews|James|Peter|Jude|Revelation)\s+(\d+):(\d+)'
     matches = re.findall(pattern, text)
     return [f"{book} {ch}:{v}" for book, ch, v in matches]
 
-# --- Chat Endpoint ---
 @app.post("/api/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest):
-    try:
-        index = load_index()
-        query_engine = index.as_query_engine(similarity_top_k=3)
-        
-        full_query = f"{EIKON_SYSTEM_PROMPT}\n\nQuestion: {request.question}"
-        response = query_engine.query(full_query)
-        
-        sources = [
-            SourceNode(
-                text=source.node.text[:500] + ("..." if len(source.node.text) > 500 else ""),
-                score=source.score,
-                metadata=source.node.metadata
+    models_to_try = [
+        "llama-3.1-8b-instant",       # Fast, cheaper, good quality
+        "mixtral-8x7b-32768",          # Different model, different rate limit pool
+        "llama-3.3-70b-versatile",     # Best quality, but we hit limits fastest
+    ]
+    
+    last_error = None
+    
+    for model_name in models_to_try:
+        try:
+            Settings.llm = Groq(model=model_name, temperature=0.3)
+            
+            index = load_index()
+            query_engine = index.as_query_engine(similarity_top_k=3)
+            
+            full_query = f"{EIKON_SYSTEM_PROMPT}\n\nQuestion: {request.question}"
+            response = query_engine.query(full_query)
+            
+            #  sources
+            sources = [
+                SourceNode(
+                    text=source.node.text[:500] + ("..." if len(source.node.text) > 500 else ""),
+                    score=source.score,
+                    metadata=source.node.metadata
+                )
+                for source in response.source_nodes
+            ]
+            
+            # Extract homily citation
+            homily_citation = None
+            if response.source_nodes:
+                first_text = response.source_nodes[0].node.text
+                homily_num = extract_homily_number(first_text)
+                if homily_num:
+                    homily_citation = f"{homily_num}, St. Isaac of Nineveh"
+                else:
+                    homily_citation = "St. Isaac of Nineveh"
+            
+            # If we got here, success!
+            return ChatResponse(
+                answer=response.response,
+                sources=sources,
+                homily_citation=homily_citation
             )
-            for source in response.source_nodes
-        ]
-        
-        homily_citation = None
-        if sources and "file_name" in sources[0].metadata:
-            homily_citation = f"Source: {sources[0].metadata['file_name']}"
-        elif sources and "homily" in sources[0].metadata:
-            homily_citation = f"Homily {sources[0].metadata['homily']}, St. Isaac of Nineveh"
-        
-        return ChatResponse(
-            answer=response.response,
-            sources=sources,
-            homily_citation=homily_citation
-        )
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=str(e))
+            
+        except Exception as e:
+            # Check if it's a rate limit error
+            if "RateLimitError" in str(type(e)) or "rate_limit" in str(e).lower():
+                last_error = e
+                print(f"⚠️ Rate limit hit for {model_name}. Trying next model...")
+                continue
+            else:
+                import traceback
+                traceback.print_exc()
+                raise HTTPException(status_code=500, detail=str(e))
+    
+    error_msg = "I'm currently experiencing high demand. Please try again in a few minutes, or ask a different question."
+    return ChatResponse(
+        answer=error_msg,
+        sources=[],
+        homily_citation="— St. Isaac of Nineveh"
+    )
 
 if __name__ == "__main__":
     import uvicorn
