@@ -117,7 +117,7 @@ def extract_scripture_references(text):
 async def chat(request: ChatRequest):
     models_to_try = [
       "llama-3.1-8b-instant",       
-    "gemma2-9b-it",             
+    "gemma2-9b-it",                 
     "llama-3.3-70b-versatile",     
     ]
     
