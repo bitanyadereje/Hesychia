@@ -1,3 +1,4 @@
+from curses import flash
 import os
 import re
 from functools import lru_cache
@@ -7,6 +8,7 @@ import pinecone
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from pinecone import models
 from pydantic import BaseModel
 
 from llama_index.core import Settings, VectorStoreIndex, StorageContext
@@ -170,7 +172,7 @@ async def chat(request: ChatRequest):
     if not groq_worked and os.getenv("GOOGLE_API_KEY"):
         try:
             print("⚠️ All Groq models failed. Falling back to Gemini...")
-            Settings.llm = Gemini(model="models/gemini-2.0-flash-exp", temperature=0.3)
+            Settings.llm = Gemini(model="models/gemini-1.5-flash", temperature=0.3)
             index = load_index()
             query_engine = index.as_query_engine(similarity_top_k=3)
 
