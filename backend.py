@@ -7,6 +7,7 @@ import pinecone
 from llama_index.core import Settings, VectorStoreIndex, StorageContext
 from llama_index.vector_stores.pinecone import PineconeVectorStore
 from llama_index.embeddings.fastembed import FastEmbedEmbedding
+from llama_index.llms.gemini import Gemini
 from llama_index.llms.groq import Groq
 from typing import List, Optional
 from functools import lru_cache
@@ -113,62 +114,66 @@ def extract_scripture_references(text):
     pattern = r'(Matthew|Mark|Luke|John|Acts|Romans|Corinthians|Galatians|Ephesians|Philippians|Colossians|Thessalonians|Timothy|Titus|Philemon|Hebrews|James|Peter|Jude|Revelation)\s+(\d+):(\d+)'
     matches = re.findall(pattern, text)
     return [f"{book} {ch}:{v}" for book, ch, v in matches]
+
+
 @app.post("/api/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest):
-    # Define the fallback chain HERE (inside the function)
-    models_to_try = [
+    # First try Groq models
+    groq_models = [
         "llama-3.1-8b-instant",
         "llama-3.3-70b-versatile",
     ]
     
     last_error = None
+    groq_worked = False
     
-    for model_name in models_to_try:
+    for model_name in groq_models:
         try:
             Settings.llm = Groq(model=model_name, temperature=0.3)
-            
             index = load_index()
             query_engine = index.as_query_engine(similarity_top_k=3)
-            
             full_query = f"{EIKON_SYSTEM_PROMPT}\n\nQuestion: {request.question}"
             response = query_engine.query(full_query)
             
-            sources = [
-                SourceNode(
-                    text=source.node.text[:500] + ("..." if len(source.node.text) > 500 else ""),
-                    score=source.score,
-                    metadata=source.node.metadata
-                )
-                for source in response.source_nodes
-            ]
+            # Process response...
+            sources = [...]
+            homily_citation = ...
             
-            homily_citation = None
-            if response.source_nodes:
-                first_text = response.source_nodes[0].node.text
-                homily_num = extract_homily_number(first_text)
-                if homily_num:
-                    homily_citation = f"{homily_num}, St. Isaac of Nineveh"
-                else:
-                    homily_citation = "St. Isaac of Nineveh"
+            groq_worked = True
+            return ChatResponse(answer=response.response, sources=sources, homily_citation=homily_citation)
+            
+        except Exception as e:
+            if "RateLimitError" in str(type(e)) or "rate_limit" in str(e).lower():
+                last_error = e
+                print(f"⚠️ Groq model {model_name} failed. Trying next...")
+                continue
+            else:
+                raise HTTPException(status_code=500, detail=str(e))
+    
+    # If all Groq models fail, try Gemini as fallback
+    if not groq_worked and os.getenv("GOOGLE_API_KEY"):
+        try:
+            print("⚠️ All Groq models failed. Falling back to Gemini...")
+            Settings.llm = Gemini(model="models/gemini-2.0-flash-exp", temperature=0.3)
+            index = load_index()
+            query_engine = index.as_query_engine(similarity_top_k=3)
+            full_query = f"{EIKON_SYSTEM_PROMPT}\n\nQuestion: {request.question}"
+            response = query_engine.query(full_query)
+            
+            # Process response...
+            sources = [...]
+            homily_citation = ...
             
             return ChatResponse(
                 answer=response.response,
                 sources=sources,
                 homily_citation=homily_citation
             )
-            
         except Exception as e:
-            # Check if it's a rate limit error
-            if "RateLimitError" in str(type(e)) or "rate_limit" in str(e).lower():
-                last_error = e
-                print(f"⚠️ Rate limit hit for {model_name}. Trying next model...")
-                continue
-            else:
-                import traceback
-                traceback.print_exc()
-                raise HTTPException(status_code=500, detail=str(e))
+            print(f"❌ Gemini fallback also failed: {e}")
     
-    error_msg = "I'm currently experiencing high demand. Please try again in a few minutes, or ask a different question."
+    # If everything fails, return a friendly error
+    error_msg = "I'm currently experiencing high demand. Please try again in a few minutes."
     return ChatResponse(
         answer=error_msg,
         sources=[],
