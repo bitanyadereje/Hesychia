@@ -118,7 +118,6 @@ async def chat(request: ChatRequest):
     # Define the fallback chain HERE (inside the function)
     models_to_try = [
         "llama-3.1-8b-instant",
-        "gemma2-9b-it",
         "llama-3.3-70b-versatile",
     ]
     
