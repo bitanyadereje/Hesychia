@@ -260,7 +260,6 @@ def load_index():
         Settings.embed_model = FastEmbedEmbedding(model_name="BAAI/bge-small-en-v1.5")
         Settings.llm = Groq(model="llama-3.3-70b-versatile", temperature=0.3)
         
-        # CRITICAL FIX: Set context window to avoid negative math error
         Settings.context_window = 16384
         Settings.num_output = 512
         Settings.chunk_size = 1024
@@ -285,7 +284,6 @@ except Exception as e:
     st.error(f"⚠️ Failed to initialize the search engine.\n\n**Error:** {str(e)}")
     st.stop()
 
-# --- St. Isaac System Persona ---
 EIKON_SYSTEM_PROMPT = """
 You are Eikon (Greek for "window" or "icon"). You are a spiritual companion dedicated to St. Isaac the Syrian.
 
@@ -302,26 +300,22 @@ Your response MUST ALWAYS:
 4. Never add extra commentary or theology from outside the retrieved text. Stay strictly within the Homilies.
 """
 
-# --- Chat Input & Response ---
 if prompt := st.chat_input("Ask a question from St. Isaac's wisdom..."):
-    # Add user message to history
+    # Add  message to history
     st.session_state.messages.append({"role": "user", "content": prompt})
     
-    # Display user message
     with st.chat_message("user"):
         st.markdown(prompt)
     
-    # Generate response
+    
     with st.chat_message("assistant", avatar="🪔"):
         with st.spinner("Searching the Homilies in stillness..."):
             # Combine system prompt with user query
             full_query = f"{EIKON_SYSTEM_PROMPT}\n\nQuestion: {prompt}"
             response = query_engine.query(full_query)
             
-            # Display the response
             st.markdown(response.response)
             
-            # Display source references in an elegant expander
             with st.expander("📜 View Source References"):
                 for idx, source in enumerate(response.source_nodes, 1):
                     st.caption(f"**Source {idx}** — Score: {source.score:.2f}")
@@ -329,10 +323,8 @@ if prompt := st.chat_input("Ask a question from St. Isaac's wisdom..."):
                     st.text(source.node.text[:400] + ("..." if len(source.node.text) > 400 else ""))
                     st.divider()
     
-    # Add assistant message to history
     st.session_state.messages.append({"role": "assistant", "content": response.response})
 
-# --- Welcome Message (First Visit) ---
 if len(st.session_state.messages) == 0:
     with st.chat_message("assistant", avatar="🪔"):
         st.markdown("""
