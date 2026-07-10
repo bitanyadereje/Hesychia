@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+const API_URL = import.meta.env.PUBLIC_API_URL || 'http://localhost:8000';
 
 const RubricatedReply = ({ content }) => {
   const first = content.charAt(0);
@@ -34,26 +35,50 @@ const ChatWidget = () => {
   }, [messages]);
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!input.trim() || isLoading) return;
+  e.preventDefault();
+  if (!input.trim() || isLoading) return;
 
-    const userMessage = { role: 'user', content: input };
-    setMessages((prev) => [...prev, userMessage]);
-    setInput('');
-    setIsLoading(true);
+  const userMessage = { role: 'user', content: input };
+  setMessages((prev) => [...prev, userMessage]);
+  setInput('');
+  setIsLoading(true);
 
-    setTimeout(() => {
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: 'assistant',
-          content: 'My child, St. Isaac teaches that tears are a gift from God...',
-          citation: 'Homily 34, St. Isaac of Nineveh',
-        },
-      ]);
-      setIsLoading(false);
-    }, 1200);
-  };
+  try {
+    const response = await fetch(`${API_URL}/api/chat`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ question: input }),
+    });
+
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    const assistantMessage = {
+      role: 'assistant',
+      content: data.answer || 'No answer returned.',
+      citation: data.homily_citation || 'St. Isaac of Nineveh',
+    };
+    setMessages((prev) => [...prev, assistantMessage]);
+  } catch (error) {
+    console.error('Error calling backend:', error);
+    setMessages((prev) => [
+      ...prev,
+      {
+        role: 'assistant',
+        content: 'I am having trouble reaching the wisdom of St. Isaac. Please check that the backend is running on port 8000 and try again.',
+        citation: '— Connection Error',
+      },
+    ]);
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   const handlePromptClick = (prompt) => {
     setInput(prompt);
@@ -83,7 +108,6 @@ const ChatWidget = () => {
           </div>
         </div>
 
-        {/* Chat Messages */}
         <div className="flex-1 overflow-y-auto manuscript-scroll space-y-4 pr-2">
           {messages.length === 0 ? (
             <div className="text-center text-ink-soft mt-16 px-4">
@@ -136,7 +160,6 @@ const ChatWidget = () => {
         </div>
       </div>
 
-      {/* Input Form */}
       <form onSubmit={handleSubmit} className="mt-4 pt-4 border-t border-gold/20 flex gap-3">
         <div className="input-wrapper">
           <span className="input-icon">✧</span>

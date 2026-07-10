@@ -1,7 +1,8 @@
+/* --- All Imports MUST be at the top --- */
 @import 'tailwindcss';
-
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300&family=UnifrakturCook:wght@700&display=swap');
 
+/* --- Candlelit Monastery Background --- */
 body {
   background-color: #2a1d14;
   font-family: 'Cormorant Garamond', serif;
@@ -13,6 +14,7 @@ body {
     url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23d6c6b2' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
 }
 
+/* --- Vignette Effect --- */
 body::after {
   content: '';
   position: fixed;
@@ -25,54 +27,33 @@ body::after {
   background: radial-gradient(ellipse at center, transparent 50%, rgba(26, 16, 10, 0.6) 100%);
 }
 
-@keyframes crossPulse {
-  0%, 100% { opacity: 0.03; }
-  50% { opacity: 0.08; }
-}
-
-.cross-watermark {
+/* --- Aging / Foxing Effect --- */
+body::before {
+  content: '';
   position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  font-size: 20rem;
-  color: #cfa640;
-  opacity: 0.04;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
   pointer-events: none;
   z-index: 0;
-  animation: crossPulse 6s ease-in-out infinite;
-  font-family: 'UnifrakturCook', serif;
-  user-select: none;
+  background-image:
+    radial-gradient(circle at 8% 15%, rgba(160, 120, 80, 0.04), transparent 25%),
+    radial-gradient(circle at 92% 78%, rgba(120, 80, 50, 0.05), transparent 35%),
+    radial-gradient(circle at 45% 30%, rgba(180, 140, 100, 0.025), transparent 40%),
+    radial-gradient(circle at 70% 85%, rgba(200, 160, 120, 0.03), transparent 30%),
+    radial-gradient(circle at 20% 70%, rgba(140, 100, 70, 0.035), transparent 20%),
+    radial-gradient(circle at 85% 25%, rgba(160, 120, 80, 0.02), transparent 28%),
+    radial-gradient(circle at 50% 50%, rgba(100, 70, 40, 0.015), transparent 50%);
 }
 
-@keyframes floatParticle {
-  0% { opacity: 0; transform: translateY(20px) scale(0.8); }
-  20% { opacity: 1; }
-  80% { opacity: 1; }
-  100% { opacity: 0; transform: translateY(-40px) scale(1.2); }
+/* --- Headings --- */
+h1, h2, h3 {
+  font-family: 'Playfair Display', serif;
+  color: #f5ecd6;
 }
 
-.particle {
-  position: fixed;
-  width: 3px;
-  height: 3px;
-  background: #f0cf87;
-  border-radius: 50%;
-  pointer-events: none;
-  z-index: 0;
-  opacity: 0;
-  animation: floatParticle 8s ease-in-out infinite;
-}
-
-.particle:nth-child(1) { left: 15%; animation-delay: 0s; width: 2px; height: 2px; }
-.particle:nth-child(2) { left: 85%; animation-delay: 2s; width: 4px; height: 4px; }
-.particle:nth-child(3) { left: 30%; animation-delay: 4s; width: 2px; height: 2px; }
-.particle:nth-child(4) { left: 70%; animation-delay: 1s; width: 3px; height: 3px; }
-.particle:nth-child(5) { left: 50%; animation-delay: 3s; width: 5px; height: 5px; }
-.particle:nth-child(6) { left: 10%; animation-delay: 5s; width: 2px; height: 2px; }
-.particle:nth-child(7) { left: 90%; animation-delay: 2.5s; width: 3px; height: 3px; }
-.particle:nth-child(8) { left: 45%; animation-delay: 6s; width: 2px; height: 2px; }
-
+/* --- Parchment Card (Illuminated) --- */
 .parchment-card {
   background-color: #f5ecd6;
   border-radius: 12px;
@@ -87,6 +68,7 @@ body::after {
   transition: all 0.3s ease;
 }
 
+/* --- Deckled Edge Effect --- */
 .parchment-card::before {
   content: '';
   position: absolute;
@@ -100,6 +82,7 @@ body::after {
   z-index: -1;
 }
 
+/* --- Logo --- */
 .logo {
   font-family: 'UnifrakturCook', serif;
   font-size: 3.5rem;
@@ -115,22 +98,21 @@ body::after {
   50% { text-shadow: 0 0 60px rgba(207, 166, 64, 0.3), 0 2px 8px rgba(0, 0, 0, 0.3); }
 }
 
+/* --- Rubricated Drop-Cap (Elegant & Subtle) --- */
 .drop-cap {
-  font-size: 4.5em;
+  font-size: 3.2em;
   float: left;
-  line-height: 0.8;
-  margin-right: 10px;
-  margin-top: 4px;
-  padding-right: 8px;
-  font-family: 'UnifrakturCook', serif;
-  color: #cfa640;
-  text-shadow: 0 0 20px rgba(207, 166, 64, 0.15);
-  border-right: 2px solid rgba(207, 166, 64, 0.2);
-  padding-right: 10px;
-  letter-spacing: 2px;
+  line-height: 1;
+  margin-right: 8px;
+  margin-top: 2px;
+  font-family: 'Playfair Display', serif;
   font-weight: 700;
+  color: #cfa640;
+  text-shadow: 0 1px 3px rgba(207, 166, 64, 0.12);
+  font-style: italic;
 }
 
+/* --- Ornamental Divider --- */
 .ornamental-divider {
   display: flex;
   align-items: center;
@@ -150,6 +132,7 @@ body::after {
   color: #cfa640;
 }
 
+/* --- Spiritual Conversation Title --- */
 .spiritual-title {
   font-family: 'Playfair Display', serif;
   font-size: 0.85rem;
@@ -161,6 +144,7 @@ body::after {
   margin-bottom: 12px;
 }
 
+/* --- Candle Glow Animations --- */
 @keyframes candleFlicker {
   0% { opacity: 0.3; transform: scale(1) rotate(0deg); }
   25% { opacity: 0.6; transform: scale(1.05) rotate(1deg); }
@@ -193,6 +177,7 @@ body::after {
   animation: candleFlicker 4s ease-in-out infinite reverse alternate;
 }
 
+/* --- Loading Candle Flicker --- */
 @keyframes flicker {
   0%, 100% { height: 10px; opacity: 0.7; transform: skewX(0deg); }
   25% { height: 16px; opacity: 1; transform: skewX(2deg); }
@@ -210,6 +195,7 @@ body::after {
   box-shadow: 0 0 12px rgba(240, 207, 135, 0.3);
 }
 
+/* --- Manuscript Scroll --- */
 .manuscript-scroll {
   scrollbar-width: thin;
   scrollbar-color: #cfa640 #ece1c8;
@@ -272,6 +258,7 @@ body::after {
   background-color: #f0cf87;
 }
 
+/* --- Conversation Bubbles --- */
 .assistant-bubble {
   background-color: #f5ecd6;
   border-radius: 12px 12px 12px 4px;
@@ -290,6 +277,7 @@ body::after {
   transition: all 0.3s ease;
 }
 
+/* --- Floating Animation for Bubbles --- */
 @keyframes fadeSlideIn {
   0% { opacity: 0; transform: translateY(12px); }
   100% { opacity: 1; transform: translateY(0); }
@@ -299,6 +287,7 @@ body::after {
   animation: fadeSlideIn 0.4s ease-out forwards;
 }
 
+/* --- Suggestion Chip --- */
 .suggestion-chip {
   background-color: #f5ecd6;
   border: 1px solid rgba(207, 166, 64, 0.3);
@@ -324,6 +313,7 @@ body::after {
   transform: translateY(0px);
 }
 
+/* --- Input Section --- */
 .input-wrapper {
   position: relative;
   display: flex;
@@ -365,6 +355,7 @@ body::after {
   font-style: italic;
 }
 
+/* --- Ask Button --- */
 .seek-button {
   background: linear-gradient(135deg, #cfa640, #b8922e);
   color: #f5ecd6;
@@ -399,6 +390,7 @@ body::after {
   transform: none;
 }
 
+/* --- Text Selection --- */
 ::selection {
   background: rgba(207, 166, 64, 0.2);
   color: #2a1d14;
