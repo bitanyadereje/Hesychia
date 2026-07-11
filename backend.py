@@ -16,7 +16,6 @@ from llama_index.embeddings.fastembed import FastEmbedEmbedding
 from llama_index.llms.groq import Groq
 from llama_index.vector_stores.pinecone import PineconeVectorStore
 
-# Import fallback clients
 from mistral_client import get_mistral_response
 from hf_client import get_hf_response
 from gemini_client import get_gemini_response
@@ -86,8 +85,6 @@ def extract_homily_number(text: str) -> Optional[str]:
 
 # --- Custom Gemini LLM (Bypasses llama-index-llms-gemini) ---
 class GeminiLLM(CustomLLM):
-    """Custom LLM wrapper for Gemini using the google-genai SDK."""
-    
     def __init__(self, model_name: str = "gemini-3.5-flash"):
         self.model_name = model_name
         super().__init__()
@@ -109,7 +106,6 @@ def load_index():
     pinecone_index = pc.Index(index_name)
 
     Settings.embed_model = FastEmbedEmbedding(model_name="BAAI/bge-small-en-v1.5")
-    # Default LLM – will be overridden per request, but set a safe default
     Settings.llm = Groq(model="llama-3.1-8b-instant", temperature=0.3)
     Settings.context_window = 16384
     Settings.num_output = 512
@@ -133,14 +129,9 @@ async def health_check():
 
 @app.post("/api/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest):
-    groq_models = [
-        "llama-3.1-8b-instant",
-        "llama-3.3-70b-versatile",
-    ]
-    
+    groq_models = ["llama-3.1-8b-instant", "llama-3.3-70b-versatile"]
     groq_worked = False
 
-    # 1. Try Groq
     for model_name in groq_models:
         try:
             Settings.llm = Groq(model=model_name, temperature=0.3)
@@ -181,43 +172,70 @@ async def chat(request: ChatRequest):
                 traceback.print_exc()
                 raise HTTPException(status_code=500, detail=str(e))
 
-    # If we get here, all Groq models failed
-    full_query = f"{EIKON_SYSTEM_PROMPT}\n\nQuestion: {request.question}"
+    index = load_index()
+    query_engine = index.as_query_engine(similarity_top_k=3)
+    retrieval_response = query_engine.query(f"{EIKON_SYSTEM_PROMPT}\n\nQuestion: {request.question}")
 
-    # 2. Fallback to Gemini (best quality)
+    retrieved_texts = [node.text for node in retrieval_response.source_nodes]
+    context = "\n\n---\n\n".join(retrieved_texts)
+
+    grounded_query = f"""{EIKON_SYSTEM_PROMPT}
+
+Here is the context from St. Isaac's homilies:
+---
+{context}
+---
+
+Based ONLY on the context above, answer this question:
+Question: {request.question}
+
+If the context does not contain the answer, say: "I cannot find an answer to this question in St. Isaac's writings."
+"""
+
+    sources = [
+        SourceNode(
+            text=node.text[:500] + ("..." if len(node.text) > 500 else ""),
+            score=node.score,
+            metadata=node.metadata
+        )
+        for node in retrieval_response.source_nodes
+    ]
+
+    homily_citation = None
+    if retrieved_texts:
+        homily_num = extract_homily_number(retrieved_texts[0])
+        homily_citation = f"{homily_num}, St. Isaac of Nineveh" if homily_num else "St. Isaac of Nineveh"
+
     if os.getenv("GOOGLE_API_KEY"):
-        print("⚠️ All Groq models failed. Falling back to Gemini...")
-        answer = get_gemini_response(full_query, model_name="gemini-3.5-flash")
+        print("⚠️ All Groq models failed. Falling back to Gemini (grounded)...")
+        answer = get_gemini_response(grounded_query, model_name="gemini-3.5-flash")
         if answer:
             return ChatResponse(
                 answer=answer,
-                sources=[],
-                homily_citation="— St. Isaac of Nineveh"
+                sources=sources,
+                homily_citation=homily_citation
             )
 
-    # 3. Fallback to Mistral (reliable backup)
     if os.getenv("MISTRAL_API_KEY"):
-        print("⚠️ All Groq models failed. Falling back to Mistral...")
-        answer = get_mistral_response(full_query)
+        print("⚠️ All Groq models failed. Falling back to Mistral (grounded)...")
+        answer = get_mistral_response(grounded_query)
         if answer:
             return ChatResponse(
                 answer=answer,
-                sources=[],
-                homily_citation="— St. Isaac of Nineveh"
+                sources=sources,
+                homily_citation=homily_citation
             )
 
-    # 4. Fallback to Hugging Face (emergency)
     if os.getenv("HF_API_KEY"):
-        print("⚠️ All Groq models failed. Falling back to Hugging Face...")
-        answer = get_hf_response(full_query)
+        print("⚠️ All Groq models failed. Falling back to Hugging Face (grounded)...")
+        answer = get_hf_response(grounded_query)
         if answer:
             return ChatResponse(
                 answer=answer,
-                sources=[],
-                homily_citation="— St. Isaac of Nineveh"
+                sources=sources,
+                homily_citation=homily_citation
             )
 
-    # 5. Friendly error
     error_msg = "I'm currently experiencing high demand. Please try again in a few minutes, or ask a different question."
     return ChatResponse(
         answer=error_msg,
