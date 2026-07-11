@@ -24,18 +24,9 @@ load_dotenv()
 
 app = FastAPI(title="Hesychia API", description="A window into St. Isaac the Syrian")
 
-# --- CORS ---
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://localhost:3000",
-        "http://localhost:4321",
-        "http://127.0.0.1:4321",
-        "https://hesychia.vercel.app",
-        "https://hesychia-frontend.vercel.app",
-        "https://hesychia-backend.onrender.com",
-    ],
+    allow_origins=[ "*"],
     allow_credentials=True,
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
