@@ -4,28 +4,20 @@ import ChatWidget from '../components/ChatWidget';
 ---
 
 <Layout title="Hesychia — St. Isaac the Syrian">
-  <!-- Orthodox Cross Watermark -->
-  <div class="cross-watermark" aria-hidden="true">☦</div>
+  <!-- Orthodox Cross Watermark (hidden on mobile) -->
+  <div class="cross-watermark hidden sm:block" aria-hidden="true">☦</div>
 
-  <!-- Floating Particles -->
-  <div class="particle" aria-hidden="true"></div>
-  <div class="particle" aria-hidden="true"></div>
-  <div class="particle" aria-hidden="true"></div>
-  <div class="particle" aria-hidden="true"></div>
-  <div class="particle" aria-hidden="true"></div>
-  <div class="particle" aria-hidden="true"></div>
-  <div class="particle" aria-hidden="true"></div>
-  <div class="particle" aria-hidden="true"></div>
-
-  <main class="min-h-screen flex items-center justify-center p-4 relative z-10">
+  <main class="min-h-screen flex items-center justify-center p-3 sm:p-4 md:p-6 relative z-10">
     <div class="w-full max-w-4xl">
       <!-- Header -->
-      <div class="text-center mb-8">
-        <h1 class="logo">Hesychia</h1>
-        <p class="text-xl md:text-2xl font-serif italic text-glow/70 mt-2">
+      <div class="text-center mb-4 sm:mb-6 md:mb-8">
+        <h1 class="logo text-3xl sm:text-4xl md:text-5xl lg:text-6xl">
+          Hesychia
+        </h1>
+        <p class="text-base sm:text-lg md:text-xl lg:text-2xl font-serif italic text-glow/70 mt-1 sm:mt-2 px-2">
           A window into the wisdom of St. Isaac the Syrian
         </p>
-        <div class="ornamental-divider">
+        <div class="ornamental-divider mt-2 sm:mt-3 md:mt-4">
           <span class="text-gold/50">✦</span>
           <span class="text-gold/30">✦ ✦</span>
           <span class="text-gold/20">✦ ✦ ✦</span>
@@ -33,19 +25,19 @@ import ChatWidget from '../components/ChatWidget';
       </div>
 
       <!-- Chat Widget -->
-      <div class="parchment-card">
+      <div class="parchment-card p-3 sm:p-4 md:p-6">
         <ChatWidget client:load />
       </div>
 
       <!-- Footer -->
-      <div class="text-center mt-6 text-sm text-glow/30 font-serif">
-        <p>Rooted in the Ascetical Homilies of St. Isaac the Syrian </p>
-        <p class="text-xs mt-1">Hesychia — Silence that speaks</p>
+      <div class="text-center mt-4 sm:mt-6 text-xs sm:text-sm text-glow/30 font-serif">
+        <p>Rooted in the Ascetical Homilies of St. Isaac of Nineveh</p>
+        <p class="text-[10px] sm:text-xs mt-1">Hesychia — The way of stillness</p>
       </div>
     </div>
   </main>
 
-  <!-- Candle Glows -->
-  <div class="candle-left" aria-hidden="true"></div>
-  <div class="candle-right" aria-hidden="true"></div>
+  <!-- Candle Glows (hidden on small mobile) -->
+  <div class="candle-left hidden sm:block" aria-hidden="true"></div>
+  <div class="candle-right hidden sm:block" aria-hidden="true"></div>
 </Layout>

@@ -1,11 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
-const API_URL = import.meta.env.PUBLIC_API_URL || 'http://localhost:8000';
 
 const RubricatedReply = ({ content }) => {
   const first = content.charAt(0);
   const rest = content.slice(1);
   return (
-    <p className="font-serif text-ink text-lg leading-relaxed whitespace-pre-wrap">
+    <p className="font-serif text-ink text-base sm:text-lg leading-relaxed whitespace-pre-wrap">
       <span className="drop-cap" aria-hidden="true">{first}</span>
       {rest}
     </p>
@@ -35,50 +34,48 @@ const ChatWidget = () => {
   }, [messages]);
 
   const handleSubmit = async (e) => {
-  e.preventDefault();
-  if (!input.trim() || isLoading) return;
+    e.preventDefault();
+    if (!input.trim() || isLoading) return;
 
-  const userMessage = { role: 'user', content: input };
-  setMessages((prev) => [...prev, userMessage]);
-  setInput('');
-  setIsLoading(true);
+    const userMessage = { role: 'user', content: input };
+    setMessages((prev) => [...prev, userMessage]);
+    setInput('');
+    setIsLoading(true);
 
-  try {
-    const response = await fetch(`${API_URL}/api/chat`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ question: input }),
-    });
+    try {
+      const API_URL = import.meta.env.PUBLIC_API_URL || 'http://localhost:8000';
+      const response = await fetch(`${API_URL}/api/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question: input }),
+      });
 
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
+      const data = await response.json();
 
-    const data = await response.json();
-
-    const assistantMessage = {
-      role: 'assistant',
-      content: data.answer || 'No answer returned.',
-      citation: data.homily_citation || 'St. Isaac of Nineveh',
-    };
-    setMessages((prev) => [...prev, assistantMessage]);
-  } catch (error) {
-    console.error('Error calling backend:', error);
-    setMessages((prev) => [
-      ...prev,
-      {
+      const assistantMessage = {
         role: 'assistant',
-        content: 'I am having trouble reaching the wisdom of St. Isaac. Please check that the backend is running on port 8000 and try again.',
-        citation: '— Connection Error',
-      },
-    ]);
-  } finally {
-    setIsLoading(false);
-  }
-};
+        content: data.answer || 'No answer returned.',
+        citation: data.homily_citation || 'St. Isaac of Nineveh',
+      };
+      setMessages((prev) => [...prev, assistantMessage]);
+    } catch (error) {
+      console.error('Error calling backend:', error);
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: 'assistant',
+          content: 'I am having trouble reaching the wisdom of St. Isaac. Please try again.',
+          citation: '— Connection Error',
+        },
+      ]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handlePromptClick = (prompt) => {
     setInput(prompt);
@@ -89,93 +86,105 @@ const ChatWidget = () => {
   };
 
   return (
-    <div className="flex flex-col h-[600px]">
-      <div className="spiritual-title">✦ Spiritual Conversation ✦</div>
+    <div className="flex flex-col h-[500px] sm:h-[550px] md:h-[600px]">
+      {/* Spiritual Conversation Title */}
+      <div className="spiritual-title text-xs sm:text-sm">✦ Spiritual Conversation ✦</div>
 
-      <div className="flex flex-1 gap-4 min-h-0">
-        <div className="hidden md:block w-48 flex-shrink-0 border-r border-gold/20 pr-4 overflow-y-auto">
-          <p className="text-sm font-serif italic text-ink-soft/50 mb-3">Questions to ponder...</p>
-          <div className="space-y-2">
-            {prompts.map((p, i) => (
-              <button
-                key={i}
-                onClick={() => handlePromptClick(p)}
-                className="suggestion-chip w-full text-left"
-              >
-                {p}
-              </button>
-            ))}
+      {/* Chat Messages */}
+      <div className="flex-1 overflow-y-auto manuscript-scroll space-y-3 sm:space-y-4 pr-1 sm:pr-2">
+        {messages.length === 0 ? (
+          <div className="text-center text-ink-soft mt-8 sm:mt-12 md:mt-16 px-2 sm:px-4">
+            <p className="text-base sm:text-lg md:text-xl font-serif italic">
+              Ask me anything about the spiritual life...
+            </p>
+            <div className="w-8 sm:w-10 h-px bg-gold/30 mx-auto my-3 sm:my-5"></div>
+            <p className="text-sm sm:text-base font-serif italic text-ink-soft/70">
+              &ldquo;Be at peace with your own soul, and heaven and earth will be at peace with you.&rdquo;
+            </p>
+            <p className="text-xs sm:text-sm mt-2 font-display tracking-wide text-ink-soft/50">
+              — St. Isaac of Nineveh
+            </p>
           </div>
-        </div>
-
-        <div className="flex-1 overflow-y-auto manuscript-scroll space-y-4 pr-2">
-          {messages.length === 0 ? (
-            <div className="text-center text-ink-soft mt-16 px-4">
-              <p className="text-xl font-serif italic">Ask me anything about the spiritual life&hellip;</p>
-              <div className="w-10 h-px bg-gold/30 mx-auto my-5"></div>
-              <p className="text-base font-serif italic text-ink-soft/70">
-                &ldquo;Be at peace with your own soul, and heaven and earth will be at peace with you.&rdquo;
-              </p>
-              <p className="text-sm mt-2 font-display tracking-wide text-ink-soft/50">— St. Isaac of Nineveh</p>
-            </div>
-          ) : (
-            messages.map((msg, idx) => (
+        ) : (
+          messages.map((msg, idx) => (
+            <div
+              key={idx}
+              className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} bubble-enter`}
+            >
               <div
-                key={idx}
-                className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} bubble-enter`}
+                className={`max-w-[88%] sm:max-w-[85%] ${
+                  msg.role === 'user' ? 'user-bubble' : 'assistant-bubble'
+                }`}
               >
-                <div
-                  className={`max-w-[85%] ${msg.role === 'user' ? 'user-bubble' : 'assistant-bubble'}`}
-                >
-                  {msg.role === 'assistant' ? (
-                    <RubricatedReply content={msg.content} />
-                  ) : (
-                    <p className="font-serif text-ink text-lg leading-relaxed whitespace-pre-wrap">
-                      {msg.content}
-                    </p>
-                  )}
-                  {msg.citation && (
-                    <p className="text-sm text-ink-soft italic mt-3 pt-2 border-t border-gold/20 clear-left">
-                      — {msg.citation}
-                    </p>
-                  )}
-                </div>
-              </div>
-            ))
-          )}
-
-          {isLoading && (
-            <div className="flex justify-start bubble-enter">
-              <div className="assistant-bubble">
-                <div className="flex items-end gap-1.5 h-4">
-                  <span className="flame w-1 h-3 bg-candle rounded-full [animation-delay:-0.3s]"></span>
-                  <span className="flame w-1 h-4 bg-gold-bright rounded-full [animation-delay:-0.15s]"></span>
-                  <span className="flame w-1 h-3 bg-candle rounded-full"></span>
-                </div>
-                <p className="text-sm text-ink-soft mt-2 font-serif italic">Searching the Homilies in stillness&hellip;</p>
+                {msg.role === 'assistant' ? (
+                  <RubricatedReply content={msg.content} />
+                ) : (
+                  <p className="font-serif text-ink text-base sm:text-lg leading-relaxed whitespace-pre-wrap">
+                    {msg.content}
+                  </p>
+                )}
+                {msg.citation && (
+                  <p className="text-xs sm:text-sm text-ink-soft italic mt-2 sm:mt-3 pt-2 border-t border-gold/20 clear-left">
+                    — {msg.citation}
+                  </p>
+                )}
               </div>
             </div>
-          )}
-          <div ref={messagesEndRef} />
+          ))
+        )}
+
+        {isLoading && (
+          <div className="flex justify-start bubble-enter">
+            <div className="assistant-bubble">
+              <div className="flex items-end gap-1.5 h-4">
+                <span className="flame w-1 h-3 bg-candle rounded-full [animation-delay:-0.3s]"></span>
+                <span className="flame w-1 h-4 bg-gold-bright rounded-full [animation-delay:-0.15s]"></span>
+                <span className="flame w-1 h-3 bg-candle rounded-full"></span>
+              </div>
+              <p className="text-xs sm:text-sm text-ink-soft mt-2 font-serif italic">
+                Searching the Homilies in stillness...
+              </p>
+            </div>
+          </div>
+        )}
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* Prompt Chips — Below chat, above input */}
+      <div className="mt-2 sm:mt-3">
+        <p className="text-xs font-serif italic text-ink-soft/40 mb-1.5 text-center">
+          Try asking...
+        </p>
+        <div className="flex flex-wrap gap-1.5 sm:gap-2 justify-center">
+          {prompts.map((p, i) => (
+            <button
+              key={i}
+              onClick={() => handlePromptClick(p)}
+              className="suggestion-chip text-xs sm:text-sm"
+            >
+              {p}
+            </button>
+          ))}
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="mt-4 pt-4 border-t border-gold/20 flex gap-3">
-        <div className="input-wrapper">
-          <span className="input-icon">✧</span>
+      {/* Input Form */}
+      <form onSubmit={handleSubmit} className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-gold/20 flex flex-col sm:flex-row gap-2">
+        <div className="input-wrapper flex-1">
+          <span className="input-icon text-sm sm:text-base">✧</span>
           <input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Ask St. Isaac..."
-            className="input-field"
+            className="input-field text-base sm:text-lg"
             disabled={isLoading}
           />
         </div>
         <button
           type="submit"
           disabled={isLoading || !input.trim()}
-          className="seek-button"
+          className="seek-button w-full sm:w-auto flex justify-center text-base sm:text-lg"
         >
           Ask
         </button>

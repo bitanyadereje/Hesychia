@@ -8,9 +8,9 @@ llama-index-core
 llama-index-embeddings-fastembed
 llama-index-vector-stores-pinecone
 llama-index-llms-groq
-llama-index-llms-gemini==0.5.0
 fastembed
 pdfplumber
 pypdf
 pydantic
 httpx
+requests

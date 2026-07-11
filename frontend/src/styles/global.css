@@ -1,12 +1,27 @@
 /* --- All Imports MUST be at the top --- */
 @import 'tailwindcss';
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300&family=UnifrakturCook:wght@700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300&family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=UnifrakturCook:wght@700&display=swap');
 
-/* --- Candlelit Monastery Background --- */
+:root {
+  --ink: #2a1d14;
+  --ink-deep: #1a100a;
+  --vellum: #ece1c8;
+  --vellum-card: #f5ecd6;
+  --vellum-bright: #fffcf5;
+  --gold: #cfa640;
+  --gold-bright: #f0cf87;
+  --gold-deep: #a97f2e;
+  --porphyry: #6e1f2b;
+  --porphyry-deep: #4c141d;
+  --sepia: #8b6f47;
+  --verdigris: #5a7a63;
+  --ink-soft: #5c4632;
+}
+
 body {
-  background-color: #2a1d14;
-  font-family: 'Cormorant Garamond', serif;
-  color: #f5ecd6;
+  background-color: var(--ink-deep);
+  font-family: 'EB Garamond', 'Cormorant Garamond', serif;
+  color: var(--vellum-card);
   min-height: 100vh;
   position: relative;
   background-image:
@@ -14,7 +29,6 @@ body {
     url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23d6c6b2' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
 }
 
-/* --- Vignette Effect --- */
 body::after {
   content: '';
   position: fixed;
@@ -24,10 +38,9 @@ body::after {
   height: 100%;
   pointer-events: none;
   z-index: 1;
-  background: radial-gradient(ellipse at center, transparent 50%, rgba(26, 16, 10, 0.6) 100%);
+  background: radial-gradient(ellipse at center, transparent 50%, rgba(26, 16, 10, 0.65) 100%);
 }
 
-/* --- Aging / Foxing Effect --- */
 body::before {
   content: '';
   position: fixed;
@@ -47,19 +60,28 @@ body::before {
     radial-gradient(circle at 50% 50%, rgba(100, 70, 40, 0.015), transparent 50%);
 }
 
-/* --- Headings --- */
 h1, h2, h3 {
-  font-family: 'Playfair Display', serif;
-  color: #f5ecd6;
+  font-family: 'Cormorant SC', 'EB Garamond', serif;
+  font-weight: 600;
+  color: var(--vellum-card);
+  letter-spacing: 0.5px;
+  text-shadow:
+    0 1px 0 rgba(0, 0, 0, 0.35),
+    0 0 24px rgba(240, 207, 135, 0.08);
 }
 
-/* --- Parchment Card (Illuminated) --- */
 .parchment-card {
-  background-color: #f5ecd6;
-  border-radius: 12px;
-  border: 2px solid #cfa640;
+  background-color: var(--vellum-card);
+  background-image:
+    radial-gradient(ellipse 220px 140px at 92% 8%, rgba(139, 111, 71, 0.10), transparent 70%),
+    radial-gradient(ellipse 180px 120px at 6% 94%, rgba(139, 111, 71, 0.08), transparent 70%),
+    radial-gradient(ellipse 100px 70px at 30% 15%, rgba(207, 166, 64, 0.05), transparent 70%),
+    url("data:image/svg+xml,%3Csvg width='80' height='80' viewBox='0 0 80 80' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0.55  0 0 0 0 0.44  0 0 0 0 0.28  0 0 0 0.045 0'/%3E%3C/filter%3E%3Crect width='80' height='80' filter='url(%23n)'/%3E%3C/svg%3E");
+  border-radius: 4px;
+  border: 1px solid var(--gold);
   box-shadow:
     inset 0 0 80px rgba(207, 166, 64, 0.06),
+    inset 0 0 2px rgba(42, 29, 20, 0.4),
     0 0 40px rgba(207, 166, 64, 0.08),
     0 8px 32px rgba(0, 0, 0, 0.5);
   position: relative;
@@ -68,7 +90,6 @@ h1, h2, h3 {
   transition: all 0.3s ease;
 }
 
-/* --- Deckled Edge Effect --- */
 .parchment-card::before {
   content: '';
   position: absolute;
@@ -76,17 +97,16 @@ h1, h2, h3 {
   left: -10px;
   right: -10px;
   bottom: -10px;
-  border: 1px solid rgba(207, 166, 64, 0.12);
-  border-radius: 10px;
+  border: 1px solid rgba(207, 166, 64, 0.14);
+  border-radius: 2px;
   pointer-events: none;
   z-index: -1;
 }
 
-/* --- Logo --- */
 .logo {
   font-family: 'UnifrakturCook', serif;
   font-size: 3.5rem;
-  color: #cfa640;
+  color: var(--gold);
   text-shadow: 0 0 40px rgba(207, 166, 64, 0.2), 0 2px 8px rgba(0, 0, 0, 0.3);
   letter-spacing: 6px;
   line-height: 1.2;
@@ -98,53 +118,58 @@ h1, h2, h3 {
   50% { text-shadow: 0 0 60px rgba(207, 166, 64, 0.3), 0 2px 8px rgba(0, 0, 0, 0.3); }
 }
 
-/* --- Rubricated Drop-Cap (Elegant & Subtle) --- */
 .drop-cap {
-  font-size: 3.2em;
-  float: left;
-  line-height: 1;
-  margin-right: 8px;
-  margin-top: 2px;
-  font-family: 'Playfair Display', serif;
+  font-family: 'UnifrakturCook', 'Cormorant SC', serif;
   font-weight: 700;
-  color: #cfa640;
-  text-shadow: 0 1px 3px rgba(207, 166, 64, 0.12);
-  font-style: italic;
+  color: var(--porphyry);
+  font-size: 3.8em;
+  float: left;
+  line-height: 0.7;
+  margin-right: 10px;
+  margin-top: 2px;
+  padding: 0.05em 0.12em;
+  background: radial-gradient(circle at 35% 30%, rgba(207, 166, 64, 0.22), rgba(207, 166, 64, 0.04) 65%, transparent 75%);
+  text-shadow:
+    0 1px 3px rgba(110, 31, 43, 0.15),
+    0 0 18px rgba(207, 166, 64, 0.25);
 }
 
-/* --- Ornamental Divider --- */
 .ornamental-divider {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
-  color: #cfa640;
+  gap: 14px;
+  color: var(--gold);
   font-size: 1.2rem;
   margin: 16px 0;
 }
 
 .ornamental-divider::before,
 .ornamental-divider::after {
-  content: '✦ ✦ ✦';
-  letter-spacing: 4px;
-  font-size: 0.7rem;
-  opacity: 0.3;
-  color: #cfa640;
+  content: '❧';
+  font-family: 'Cormorant SC', serif;
+  letter-spacing: 2px;
+  font-size: 1rem;
+  opacity: 0.35;
+  color: var(--gold);
 }
 
-/* --- Spiritual Conversation Title --- */
+.ornamental-divider::after {
+  transform: scaleX(-1);
+}
+
 .spiritual-title {
-  font-family: 'Playfair Display', serif;
-  font-size: 0.85rem;
+  font-family: 'Cormorant SC', serif;
+  font-size: 0.72rem;
+  font-weight: 600;
   letter-spacing: 4px;
   text-transform: uppercase;
-  color: #cfa640;
-  opacity: 0.5;
+  color: var(--gold);
+  opacity: 0.55;
   text-align: center;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 
-/* --- Candle Glow Animations --- */
 @keyframes candleFlicker {
   0% { opacity: 0.3; transform: scale(1) rotate(0deg); }
   25% { opacity: 0.6; transform: scale(1.05) rotate(1deg); }
@@ -177,7 +202,6 @@ h1, h2, h3 {
   animation: candleFlicker 4s ease-in-out infinite reverse alternate;
 }
 
-/* --- Loading Candle Flicker --- */
 @keyframes flicker {
   0%, 100% { height: 10px; opacity: 0.7; transform: skewX(0deg); }
   25% { height: 16px; opacity: 1; transform: skewX(2deg); }
@@ -187,7 +211,7 @@ h1, h2, h3 {
 
 .flame {
   animation: flicker 0.8s ease-in-out infinite alternate;
-  background: linear-gradient(to top, #f0cf87, #cfa640);
+  background: linear-gradient(to top, var(--gold-bright), var(--gold));
   border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
   display: inline-block;
   width: 6px;
@@ -195,10 +219,9 @@ h1, h2, h3 {
   box-shadow: 0 0 12px rgba(240, 207, 135, 0.3);
 }
 
-/* --- Manuscript Scroll --- */
 .manuscript-scroll {
   scrollbar-width: thin;
-  scrollbar-color: #cfa640 #ece1c8;
+  scrollbar-color: var(--gold) var(--vellum);
 }
 
 .manuscript-scroll::-webkit-scrollbar {
@@ -206,41 +229,40 @@ h1, h2, h3 {
 }
 
 .manuscript-scroll::-webkit-scrollbar-track {
-  background: #ece1c8;
+  background: var(--vellum);
   border-radius: 4px;
 }
 
 .manuscript-scroll::-webkit-scrollbar-thumb {
-  background: #cfa640;
+  background: var(--gold);
   border-radius: 4px;
   border: 1px solid rgba(207, 166, 64, 0.2);
 }
 
-/* --- Color Utility Classes --- */
 .bg-vellum {
-  background-color: #ece1c8;
+  background-color: var(--vellum);
 }
 .bg-vellum-card {
-  background-color: #f5ecd6;
+  background-color: var(--vellum-card);
 }
 .bg-porphyry {
-  background-color: #6e1f2b;
+  background-color: var(--porphyry);
 }
 .bg-porphyry-deep {
-  background-color: #4c141d;
+  background-color: var(--porphyry-deep);
 }
 .text-ink {
-  color: #2a1d14;
+  color: var(--ink);
 }
 .text-ink-soft {
-  color: #5c4632;
+  color: var(--ink-soft);
 }
 .text-glow {
-  color: #f5ecd6;
+  color: var(--vellum-card);
   text-shadow: 0 0 20px rgba(240, 207, 135, 0.15), 0 0 40px rgba(240, 207, 135, 0.05);
 }
 .border-gold {
-  border-color: #cfa640;
+  border-color: var(--gold);
 }
 .border-gold\/25 {
   border-color: rgba(207, 166, 64, 0.25);
@@ -249,35 +271,36 @@ h1, h2, h3 {
   border-color: rgba(207, 166, 64, 0.4);
 }
 .bg-gold {
-  background-color: #cfa640;
+  background-color: var(--gold);
 }
 .bg-gold-bright {
-  background-color: #f0cf87;
+  background-color: var(--gold-bright);
 }
 .bg-candle {
-  background-color: #f0cf87;
+  background-color: var(--gold-bright);
 }
 
-/* --- Conversation Bubbles --- */
 .assistant-bubble {
-  background-color: #f5ecd6;
-  border-radius: 12px 12px 12px 4px;
-  border-left: 3px solid #cfa640;
+  background-color: var(--vellum-card);
+  border-radius: 6px 6px 6px 2px;
+  border-left: 3px solid var(--gold);
   box-shadow: 0 2px 12px rgba(42, 29, 20, 0.08);
   padding: 1rem 1.25rem;
   transition: all 0.3s ease;
+  font-family: 'EB Garamond', serif;
 }
 
 .user-bubble {
-  background-color: #ece1c8;
-  border-radius: 12px 12px 4px 12px;
-  border-left: 3px solid #6e1f2b;
+  background-color: var(--vellum);
+  border-radius: 6px 6px 2px 6px;
+  border-left: 3px solid var(--porphyry);
   box-shadow: 0 2px 8px rgba(42, 29, 20, 0.06);
   padding: 1rem 1.25rem;
   transition: all 0.3s ease;
+  font-family: 'Cormorant Garamond', serif;
+  font-style: italic;
 }
 
-/* --- Floating Animation for Bubbles --- */
 @keyframes fadeSlideIn {
   0% { opacity: 0; transform: translateY(12px); }
   100% { opacity: 1; transform: translateY(0); }
@@ -287,16 +310,17 @@ h1, h2, h3 {
   animation: fadeSlideIn 0.4s ease-out forwards;
 }
 
-/* --- Suggestion Chip --- */
 .suggestion-chip {
-  background-color: #f5ecd6;
+  background-color: var(--vellum-card);
   border: 1px solid rgba(207, 166, 64, 0.3);
   border-radius: 24px;
   padding: 0.5rem 1.2rem;
   font-size: 0.85rem;
   font-family: 'Cormorant Garamond', serif;
   font-style: italic;
-  color: #5c4632;
+  font-weight: 400;
+  letter-spacing: 0.3px;
+  color: var(--ink-soft);
   cursor: pointer;
   transition: all 0.25s ease;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
@@ -304,16 +328,16 @@ h1, h2, h3 {
 
 .suggestion-chip:hover {
   transform: translateY(-2px);
-  border-color: #cfa640;
+  border-color: var(--gold);
   box-shadow: 0 4px 12px rgba(207, 166, 64, 0.15);
   background-color: #faf3e6;
+  color: var(--gold-deep);
 }
 
 .suggestion-chip:active {
   transform: translateY(0px);
 }
 
-/* --- Input Section --- */
 .input-wrapper {
   position: relative;
   display: flex;
@@ -324,7 +348,7 @@ h1, h2, h3 {
 .input-icon {
   position: absolute;
   left: 14px;
-  color: #cfa640;
+  color: var(--gold);
   opacity: 0.4;
   font-size: 1rem;
   pointer-events: none;
@@ -333,50 +357,53 @@ h1, h2, h3 {
 .input-field {
   flex: 1;
   padding: 0.85rem 1rem 0.85rem 3rem;
-  border-radius: 8px;
+  border-radius: 4px;
   border: 1px solid rgba(207, 166, 64, 0.3);
   background-color: #fcf8f0;
   font-family: 'Cormorant Garamond', serif;
   font-size: 1.1rem;
-  color: #2a1d14;
+  color: var(--ink);
   transition: all 0.3s ease;
 }
 
 .input-field:focus {
   outline: none;
-  border-color: #cfa640;
+  border-color: var(--gold);
   box-shadow: 0 0 0 3px rgba(207, 166, 64, 0.15), 0 0 30px rgba(207, 166, 64, 0.05);
-  background-color: #fffcf5;
+  background-color: var(--vellum-bright);
 }
 
 .input-field::placeholder {
-  color: #5c4632;
+  color: var(--ink-soft);
   opacity: 0.5;
   font-style: italic;
 }
 
-/* --- Ask Button --- */
 .seek-button {
-  background: linear-gradient(135deg, #cfa640, #b8922e);
-  color: #f5ecd6;
-  font-family: 'Playfair Display', serif;
+  background: linear-gradient(135deg, var(--gold), var(--gold-deep));
+  color: var(--vellum-card);
+  font-family: 'Cormorant SC', serif;
   font-weight: 600;
   font-size: 1rem;
+  letter-spacing: 1px;
   padding: 0.85rem 1.8rem;
   border: none;
-  border-radius: 8px;
+  border-radius: 4px;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 2px 12px rgba(207, 166, 64, 0.25);
-  letter-spacing: 0.5px;
+  box-shadow:
+    0 2px 12px rgba(207, 166, 64, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
   display: flex;
   align-items: center;
   gap: 6px;
 }
 
 .seek-button:hover:not(:disabled) {
-  background: linear-gradient(135deg, #dbb84a, #cfa640);
-  box-shadow: 0 4px 24px rgba(207, 166, 64, 0.35);
+  background: linear-gradient(135deg, var(--gold-bright), var(--gold));
+  box-shadow:
+    0 4px 24px rgba(207, 166, 64, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.25);
   transform: translateY(-1px);
 }
 
@@ -390,12 +417,117 @@ h1, h2, h3 {
   transform: none;
 }
 
-/* --- Text Selection --- */
+/* --- Selection --- */
 ::selection {
   background: rgba(207, 166, 64, 0.2);
-  color: #2a1d14;
+  color: var(--ink);
 }
 ::-moz-selection {
   background: rgba(207, 166, 64, 0.2);
-  color: #2a1d14;
+  color: var(--ink);
+}
+
+/* --- Accessibility: respect reduced motion --- */
+@media (prefers-reduced-motion: reduce) {
+  .logo,
+  .candle-left,
+  .candle-right,
+  .flame,
+  .cross-watermark,
+  .bubble-enter {
+    animation: none !important;
+  }
+  .seek-button:hover:not(:disabled),
+  .suggestion-chip:hover {
+    transform: none;
+  }
+}
+
+/* --- Responsive Styles --- */
+@media (max-width: 640px) {
+  .logo {
+    font-size: 2.5rem !important;
+    letter-spacing: 2px;
+  }
+  .parchment-card {
+    padding: 0.75rem !important;
+    border-radius: 4px !important;
+  }
+  .input-field {
+    font-size: 1rem !important;
+    padding: 0.65rem 1rem 0.65rem 2.6rem !important;
+  }
+  .seek-button {
+    font-size: 0.95rem !important;
+    padding: 0.65rem 1.2rem !important;
+  }
+  .drop-cap {
+    font-size: 2.8em !important;
+    margin-right: 4px !important;
+  }
+  .suggestion-chip {
+    font-size: 0.7rem !important;
+    padding: 0.2rem 0.6rem !important;
+  }
+  .ornamental-divider {
+    font-size: 0.9rem !important;
+    margin: 8px 0 !important;
+  }
+  .assistant-bubble,
+  .user-bubble {
+    padding: 0.6rem 0.8rem !important;
+  }
+  .candle-left,
+  .candle-right {
+    display: none !important;
+  }
+  .cross-watermark {
+    font-size: 10rem !important;
+  }
+}
+
+@media (min-width: 641px) and (max-width: 768px) {
+  .logo {
+    font-size: 3.2rem !important;
+  }
+  .parchment-card {
+    padding: 1rem !important;
+  }
+  .candle-left,
+  .candle-right {
+    width: 80px !important;
+    height: 120px !important;
+  }
+}
+
+@media (min-width: 769px) {
+  .candle-left {
+    width: 120px !important;
+    height: 200px !important;
+  }
+  .candle-right {
+    width: 100px !important;
+    height: 180px !important;
+  }
+}
+
+/* --- Cross Watermark --- */
+.cross-watermark {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 20rem;
+  color: var(--gold);
+  opacity: 0.04;
+  pointer-events: none;
+  z-index: 0;
+  animation: crossPulse 6s ease-in-out infinite;
+  font-family: 'UnifrakturCook', serif;
+  user-select: none;
+}
+
+@keyframes crossPulse {
+  0%, 100% { opacity: 0.03; }
+  50% { opacity: 0.08; }
 }

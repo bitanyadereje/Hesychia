@@ -8,26 +8,27 @@ export default {
         serif: ['"Cormorant Garamond"', 'serif'],
       },
       colors: {
-        vellum: {
-          DEFAULT: '#ece1c8',
-          card: '#f5ecd6',
+        parchment: {
+          DEFAULT: '#f4efe6',
+          dark: '#e8ddd0',
+          card: '#fcf9f2',
         },
         gold: {
-          DEFAULT: '#cfa640',
-          bright: '#f0cf87',
-          dark: '#a97f2e',
-        },
-        porphyry: {
-          DEFAULT: '#6e1f2b',
-          deep: '#4c141d',
+          DEFAULT: '#b8966b',
+          dark: '#a07d54',
+          light: '#d6c6b2',
         },
         ink: {
-          DEFAULT: '#2a1d14',
-          soft: '#5c4632',
+          DEFAULT: '#3b2f2f',
+          light: '#6b5a4a',
         },
-        candle: {
-          DEFAULT: '#f0cf87',
-        },
+      },
+      screens: {
+        xs: '480px',
+        sm: '640px',
+        md: '768px',
+        lg: '1024px',
+        xl: '1280px',
       },
     },
   },
