@@ -12,6 +12,7 @@ from pydantic import BaseModel
 from llama_index.core import Settings, VectorStoreIndex, StorageContext
 from llama_index.core.llms import CustomLLM, LLMMetadata, CompletionResponse
 from llama_index.core.llms.callbacks import llm_completion_callback
+from llama_index.core.retrievers import VectorIndexRetriever
 from llama_index.embeddings.fastembed import FastEmbedEmbedding
 from llama_index.llms.groq import Groq
 from llama_index.vector_stores.pinecone import PineconeVectorStore
@@ -24,9 +25,18 @@ load_dotenv()
 
 app = FastAPI(title="Hesychia API", description="A window into St. Isaac the Syrian")
 
+# --- CORS ---
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[ "*"],
+    allow_origins=[
+        "http://localhost:5173",
+        "http://localhost:3000",
+        "http://localhost:4321",
+        "http://127.0.0.1:4321",
+        "https://hesychia.vercel.app",
+        "https://hesychia-frontend.vercel.app",
+        "https://hesychia-backend.onrender.com",
+    ],
     allow_credentials=True,
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
@@ -106,6 +116,7 @@ def load_index():
     storage_context = StorageContext.from_defaults(vector_store=vector_store)
     return VectorStoreIndex.from_vector_store(vector_store, storage_context=storage_context)
 
+# --- Health Endpoint ---
 @app.get("/api/health")
 async def health_check():
     try:
@@ -118,11 +129,13 @@ async def health_check():
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+# --- Chat Endpoint with Grounded Fallback ---
 @app.post("/api/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest):
     groq_models = ["llama-3.1-8b-instant", "llama-3.3-70b-versatile"]
     groq_worked = False
 
+    # 1. Try Groq
     for model_name in groq_models:
         try:
             Settings.llm = Groq(model=model_name, temperature=0.3)
@@ -163,11 +176,14 @@ async def chat(request: ChatRequest):
                 traceback.print_exc()
                 raise HTTPException(status_code=500, detail=str(e))
 
-    index = load_index()
-    query_engine = index.as_query_engine(similarity_top_k=3)
-    retrieval_response = query_engine.query(f"{EIKON_SYSTEM_PROMPT}\n\nQuestion: {request.question}")
+    # --- If Groq fails, retrieve chunks directly from Pinecone (no LLM) ---
+    retriever = VectorIndexRetriever(
+        index=load_index(),
+        similarity_top_k=3,
+    )
+    retrieved_nodes = retriever.retrieve(request.question)
 
-    retrieved_texts = [node.text for node in retrieval_response.source_nodes]
+    retrieved_texts = [node.text for node in retrieved_nodes]
     context = "\n\n---\n\n".join(retrieved_texts)
 
     grounded_query = f"""{EIKON_SYSTEM_PROMPT}
@@ -189,7 +205,7 @@ If the context does not contain the answer, say: "I cannot find an answer to thi
             score=node.score,
             metadata=node.metadata
         )
-        for node in retrieval_response.source_nodes
+        for node in retrieved_nodes
     ]
 
     homily_citation = None
@@ -197,6 +213,7 @@ If the context does not contain the answer, say: "I cannot find an answer to thi
         homily_num = extract_homily_number(retrieved_texts[0])
         homily_citation = f"{homily_num}, St. Isaac of Nineveh" if homily_num else "St. Isaac of Nineveh"
 
+    # 2. Fallback to Gemini (grounded)
     if os.getenv("GOOGLE_API_KEY"):
         print("⚠️ All Groq models failed. Falling back to Gemini (grounded)...")
         answer = get_gemini_response(grounded_query, model_name="gemini-3.5-flash")
@@ -207,6 +224,7 @@ If the context does not contain the answer, say: "I cannot find an answer to thi
                 homily_citation=homily_citation
             )
 
+    # 3. Fallback to Mistral (grounded)
     if os.getenv("MISTRAL_API_KEY"):
         print("⚠️ All Groq models failed. Falling back to Mistral (grounded)...")
         answer = get_mistral_response(grounded_query)
@@ -217,6 +235,7 @@ If the context does not contain the answer, say: "I cannot find an answer to thi
                 homily_citation=homily_citation
             )
 
+    # 4. Fallback to Hugging Face (grounded)
     if os.getenv("HF_API_KEY"):
         print("⚠️ All Groq models failed. Falling back to Hugging Face (grounded)...")
         answer = get_hf_response(grounded_query)
@@ -227,6 +246,7 @@ If the context does not contain the answer, say: "I cannot find an answer to thi
                 homily_citation=homily_citation
             )
 
+    # 5. Friendly error
     error_msg = "I'm currently experiencing high demand. Please try again in a few minutes, or ask a different question."
     return ChatResponse(
         answer=error_msg,
