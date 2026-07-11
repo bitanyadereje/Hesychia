@@ -15,6 +15,7 @@ const ChatWidget = () => {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [conversationStarted, setConversationStarted] = useState(false);
   const messagesEndRef = useRef(null);
 
   const prompts = [
@@ -36,6 +37,9 @@ const ChatWidget = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
+
+    // Hide chips immediately when user sends a message
+    setConversationStarted(true);
 
     const userMessage = { role: 'user', content: input };
     setMessages((prev) => [...prev, userMessage]);
@@ -83,6 +87,12 @@ const ChatWidget = () => {
       const fakeEvent = { preventDefault: () => {} };
       handleSubmit(fakeEvent);
     }, 100);
+  };
+
+  // Reset conversation (optional — add a clear button)
+  const resetConversation = () => {
+    setMessages([]);
+    setConversationStarted(false);
   };
 
   return (
@@ -150,23 +160,25 @@ const ChatWidget = () => {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Prompt Chips — Below chat, above input */}
-      <div className="mt-2 sm:mt-3">
-        <p className="text-xs font-serif italic text-ink-soft/40 mb-1.5 text-center">
-          Try asking...
-        </p>
-        <div className="flex flex-wrap gap-1.5 sm:gap-2 justify-center">
-          {prompts.map((p, i) => (
-            <button
-              key={i}
-              onClick={() => handlePromptClick(p)}
-              className="suggestion-chip text-xs sm:text-sm"
-            >
-              {p}
-            </button>
-          ))}
+      {/* Prompt Chips — Hide once conversation has started */}
+      {!conversationStarted && (
+        <div className="mt-2 sm:mt-3">
+          <p className="text-xs font-serif italic text-ink-soft/40 mb-1.5 text-center">
+            Try asking...
+          </p>
+          <div className="flex flex-nowrap sm:flex-wrap gap-1.5 sm:gap-2 overflow-x-auto sm:overflow-x-visible pb-1 sm:pb-0 justify-start sm:justify-center">
+            {prompts.map((p, i) => (
+              <button
+                key={i}
+                onClick={() => handlePromptClick(p)}
+                className="suggestion-chip text-xs sm:text-sm whitespace-nowrap"
+              >
+                {p}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Input Form */}
       <form onSubmit={handleSubmit} className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-gold/20 flex flex-col sm:flex-row gap-2">

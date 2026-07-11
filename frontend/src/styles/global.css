@@ -417,7 +417,6 @@ h1, h2, h3 {
   transform: none;
 }
 
-/* --- Selection --- */
 ::selection {
   background: rgba(207, 166, 64, 0.2);
   color: var(--ink);
@@ -427,7 +426,6 @@ h1, h2, h3 {
   color: var(--ink);
 }
 
-/* --- Accessibility: respect reduced motion --- */
 @media (prefers-reduced-motion: reduce) {
   .logo,
   .candle-left,
@@ -443,7 +441,6 @@ h1, h2, h3 {
   }
 }
 
-/* --- Responsive Styles --- */
 @media (max-width: 640px) {
   .logo {
     font-size: 2.5rem !important;
@@ -465,9 +462,10 @@ h1, h2, h3 {
     font-size: 2.8em !important;
     margin-right: 4px !important;
   }
-  .suggestion-chip {
-    font-size: 0.7rem !important;
-    padding: 0.2rem 0.6rem !important;
+    .suggestion-chip {
+    font-size: 0.65rem !important;
+    padding: 0.2rem 0.5rem !important;
+    border-radius: 16px !important;
   }
   .ornamental-divider {
     font-size: 0.9rem !important;
