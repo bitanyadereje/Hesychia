@@ -10,12 +10,16 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from llama_index.core import Settings, VectorStoreIndex, StorageContext
+from llama_index.core.llms import CustomLLM, LLMMetadata, CompletionResponse
+from llama_index.core.llms.callbacks import llm_completion_callback
 from llama_index.embeddings.fastembed import FastEmbedEmbedding
 from llama_index.llms.groq import Groq
 from llama_index.vector_stores.pinecone import PineconeVectorStore
 
-# Import Mistral fallback
+# Import fallback clients
 from mistral_client import get_mistral_response
+from hf_client import get_hf_response
+from gemini_client import get_gemini_response
 
 load_dotenv()
 
@@ -80,6 +84,23 @@ def extract_homily_number(text: str) -> Optional[str]:
             return f"Homily {match.group(1)}"
     return None
 
+# --- Custom Gemini LLM (Bypasses llama-index-llms-gemini) ---
+class GeminiLLM(CustomLLM):
+    """Custom LLM wrapper for Gemini using the google-genai SDK."""
+    
+    def __init__(self, model_name: str = "gemini-3.5-flash"):
+        self.model_name = model_name
+        super().__init__()
+
+    @property
+    def metadata(self) -> LLMMetadata:
+        return LLMMetadata(model_name=self.model_name)
+
+    @llm_completion_callback()
+    def complete(self, prompt: str, **kwargs) -> CompletionResponse:
+        response_text = get_gemini_response(prompt, self.model_name)
+        return CompletionResponse(text=response_text or "Error: No response from Gemini")
+
 # --- Load Pinecone Index (cached) ---
 @lru_cache(maxsize=1)
 def load_index():
@@ -88,6 +109,7 @@ def load_index():
     pinecone_index = pc.Index(index_name)
 
     Settings.embed_model = FastEmbedEmbedding(model_name="BAAI/bge-small-en-v1.5")
+    # Default LLM – will be overridden per request, but set a safe default
     Settings.llm = Groq(model="llama-3.1-8b-instant", temperature=0.3)
     Settings.context_window = 16384
     Settings.num_output = 512
@@ -97,7 +119,6 @@ def load_index():
     storage_context = StorageContext.from_defaults(vector_store=vector_store)
     return VectorStoreIndex.from_vector_store(vector_store, storage_context=storage_context)
 
-# --- Health Endpoint ---
 @app.get("/api/health")
 async def health_check():
     try:
@@ -110,7 +131,6 @@ async def health_check():
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
-# --- Chat Endpoint with Fallback Chain (Groq → Mistral) ---
 @app.post("/api/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest):
     groq_models = [
@@ -120,7 +140,7 @@ async def chat(request: ChatRequest):
     
     groq_worked = False
 
-    # 1. Try Groq models
+    # 1. Try Groq
     for model_name in groq_models:
         try:
             Settings.llm = Groq(model=model_name, temperature=0.3)
@@ -130,7 +150,6 @@ async def chat(request: ChatRequest):
             full_query = f"{EIKON_SYSTEM_PROMPT}\n\nQuestion: {request.question}"
             response = query_engine.query(full_query)
 
-            # Extract sources
             sources = [
                 SourceNode(
                     text=source.node.text[:500] + ("..." if len(source.node.text) > 500 else ""),
@@ -140,7 +159,6 @@ async def chat(request: ChatRequest):
                 for source in response.source_nodes
             ]
 
-            # Extract homily citation
             homily_citation = None
             if response.source_nodes:
                 first_text = response.source_nodes[0].node.text
@@ -163,22 +181,43 @@ async def chat(request: ChatRequest):
                 traceback.print_exc()
                 raise HTTPException(status_code=500, detail=str(e))
 
-    # 2. If all Groq models fail, fallback to Mistral
-    if not groq_worked and os.getenv("MISTRAL_API_KEY"):
-        try:
-            print("⚠️ All Groq models failed. Falling back to Mistral...")
-            full_query = f"{EIKON_SYSTEM_PROMPT}\n\nQuestion: {request.question}"
-            mistral_answer = get_mistral_response(full_query)
-            if mistral_answer:
-                return ChatResponse(
-                    answer=mistral_answer,
-                    sources=[],
-                    homily_citation="— St. Isaac of Nineveh"
-                )
-        except Exception as e:
-            print(f"❌ Mistral fallback also failed: {e}")
+    # If we get here, all Groq models failed
+    full_query = f"{EIKON_SYSTEM_PROMPT}\n\nQuestion: {request.question}"
 
-    # 3. If everything fails, return a friendly error
+    # 2. Fallback to Gemini (best quality)
+    if os.getenv("GOOGLE_API_KEY"):
+        print("⚠️ All Groq models failed. Falling back to Gemini...")
+        answer = get_gemini_response(full_query, model_name="gemini-3.5-flash")
+        if answer:
+            return ChatResponse(
+                answer=answer,
+                sources=[],
+                homily_citation="— St. Isaac of Nineveh"
+            )
+
+    # 3. Fallback to Mistral (reliable backup)
+    if os.getenv("MISTRAL_API_KEY"):
+        print("⚠️ All Groq models failed. Falling back to Mistral...")
+        answer = get_mistral_response(full_query)
+        if answer:
+            return ChatResponse(
+                answer=answer,
+                sources=[],
+                homily_citation="— St. Isaac of Nineveh"
+            )
+
+    # 4. Fallback to Hugging Face (emergency)
+    if os.getenv("HF_API_KEY"):
+        print("⚠️ All Groq models failed. Falling back to Hugging Face...")
+        answer = get_hf_response(full_query)
+        if answer:
+            return ChatResponse(
+                answer=answer,
+                sources=[],
+                homily_citation="— St. Isaac of Nineveh"
+            )
+
+    # 5. Friendly error
     error_msg = "I'm currently experiencing high demand. Please try again in a few minutes, or ask a different question."
     return ChatResponse(
         answer=error_msg,

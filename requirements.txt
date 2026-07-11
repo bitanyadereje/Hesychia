@@ -14,3 +14,5 @@ pypdf
 pydantic
 httpx
 requests
+google-genai
+Pillow>=12.2.0

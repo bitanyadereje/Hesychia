@@ -2,12 +2,9 @@ import os
 import requests
 
 def get_mistral_response(prompt: str) -> str:
-    """
-    Get a response from Mistral AI using the HTTP API (free tier).
-    """
     api_key = os.getenv("MISTRAL_API_KEY")
     if not api_key:
-        print("⚠️ MISTRAL_API_KEY not set in environment variables.")
+        print("⚠️ MISTRAL_API_KEY not set.")
         return None
     
     url = "https://api.mistral.ai/v1/chat/completions"
@@ -23,13 +20,15 @@ def get_mistral_response(prompt: str) -> str:
     }
     
     try:
-        response = requests.post(url, headers=headers, json=data, timeout=30)
+        response = requests.post(url, headers=headers, json=data, timeout=12)
         if response.status_code == 200:
-            result = response.json()
-            return result["choices"][0]["message"]["content"]
+            return response.json()["choices"][0]["message"]["content"]
         else:
-            print(f"⚠️ Mistral API error: {response.status_code} - {response.text[:200]}")
+            print(f"⚠️ Mistral error: {response.status_code}")
             return None
+    except requests.Timeout:
+        print("⚠️ Mistral timed out (12s).")
+        return None
     except Exception as e:
-        print(f"⚠️ Mistral request failed: {e}")
+        print(f"⚠️ Mistral failed: {e}")
         return None
